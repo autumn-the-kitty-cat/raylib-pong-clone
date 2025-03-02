@@ -3,8 +3,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define PADDLE_SPEED 6
-#define PADDLE_HEIGHT 100
+#define PADDLE_SPEED 20
+#define PADDLE_HEIGHT 80
 #define PADDLE_DISTANCE 400
 #define PADDLE_WIDTH 30
 
@@ -82,31 +82,33 @@ int32_t main() {
     // Draw Ball
     DrawCircle(ball.x, ball.y, ball.radius, WHITE);
 
+    int nextBallY = ball.y + (ball.speed + ball.radius) * sinf(ball.angle);
+    int nextBallX = ball.x + (ball.speed + ball.radius) * cosf(ball.angle);
+
     // Ball intersection
-    bool ballIntersectsWithCieling =
-        ball.y + ball.speed * sinf(ball.angle) <= 0;
-    bool ballIntersectsWithFloor =
-        ball.y + ball.speed * sinf(ball.angle) >= height;
-    bool ballIntersectsWithRightPaddleLeftSide =
-        (ball.x + ball.speed * cosf(ball.angle) >= width - PADDLE_DISTANCE) &&
-        (ball.y + ball.radius >= paddle2.y &&
-         ball.y - ball.radius <= paddle2.y + paddle2.height);
+    bool ballIntersectsWithCieling = nextBallY <= 0;
+    bool ballIntersectsWithFloor = nextBallY >= height;
     bool ballIntersectsWithLeftPaddleRightSide =
-        ((ball.x + ball.speed * cosf(ball.angle) <=
-          PADDLE_DISTANCE + PADDLE_WIDTH) &&
-         (ball.y + ball.radius >= paddle1.y &&
-          ball.y - ball.radius <= paddle2.y + paddle2.height));
+        ((nextBallX <= PADDLE_DISTANCE + PADDLE_WIDTH) && // Right side
+         (nextBallX >= PADDLE_DISTANCE) &&                // Left side
+         (nextBallY >= paddle1.y) &&                      // Top side
+         (nextBallY <= paddle2.y + paddle2.height));      // Bottom side
+    bool ballIntersectsWithRightPaddleLeftSide =
+        (nextBallX >= width - PADDLE_DISTANCE) &&                // Left side
+        (nextBallX <= width - PADDLE_DISTANCE + PADDLE_WIDTH) && // Right side
+        (nextBallY >= paddle2.y) &&                              // Top side
+        (nextBallY <= paddle2.y + paddle2.height);               // Bottom side
 
     if (ballIntersectsWithCieling || ballIntersectsWithFloor) {
-      ball.angle = PI - 2 * ball.angle;
+      ball.angle = 2 * PI - ball.angle;
     }
 
     if (ballIntersectsWithLeftPaddleRightSide) {
-      ball.angle = fmod(PI - ball.angle + PI / 60 * paddle1.velocity, PI * 2);
+      ball.angle = fmod(PI - ball.angle + PI / 40 * paddle1.velocity, PI * 2);
     }
 
     if (ballIntersectsWithRightPaddleLeftSide) {
-      ball.angle = fmod(PI - ball.angle + PI / 60 * paddle2.velocity, PI * 2);
+      ball.angle = fmod(PI - ball.angle + PI / 40 * paddle2.velocity, PI * 2);
     }
 
     // Ball out of bounds
@@ -129,10 +131,14 @@ int32_t main() {
     // Paddle 1 movement
     if (IsKeyDown(KEY_W) && paddle1.y > 0) {
       paddle1.y -= PADDLE_SPEED;
-      paddle1.velocity += 1;
+      if (paddle1.velocity < 10) {
+        paddle1.velocity += 1;
+      }
     } else if (IsKeyDown(KEY_S) && paddle1.y + paddle1.height < height) {
       paddle1.y += PADDLE_SPEED;
-      paddle1.velocity -= 1;
+      if (paddle1.velocity > -10) {
+        paddle1.velocity -= 1;
+      }
     } else {
       paddle1.velocity = 0;
     }
@@ -140,10 +146,14 @@ int32_t main() {
     // Paddle 2 movement
     if (IsKeyDown(KEY_UP) && paddle2.y > 0) {
       paddle2.y -= PADDLE_SPEED;
-      paddle2.velocity += 1;
+      if (paddle2.velocity < 10) {
+        paddle2.velocity += 1;
+      }
     } else if (IsKeyDown(KEY_DOWN) && paddle2.y + paddle2.height < height) {
       paddle2.y += PADDLE_SPEED;
-      paddle2.velocity -= 1;
+      if (paddle2.velocity > -10) {
+        paddle2.velocity -= 1;
+      }
     } else {
       paddle2.velocity = 0;
     }
